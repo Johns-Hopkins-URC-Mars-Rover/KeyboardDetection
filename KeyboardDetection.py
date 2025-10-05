@@ -33,7 +33,8 @@ def correct_key_label(cls_name, x1, y1, x2, y2, frame, results):
 
     return cls_name
 
-model = YOLO(r'/Users/joshuadayal/Downloads/best.pt')
+# adjust path
+model = YOLO(r'/Users/mariamhusain/Desktop/best.pt')
 cap = cv2.VideoCapture(0)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
