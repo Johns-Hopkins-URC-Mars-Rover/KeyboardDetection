@@ -1,47 +1,96 @@
 import cv2
 import numpy as np
+import time
+from datetime import datetime
+import subprocess   # for running external script
 
-# pick your dictionary (common: 4x4_50, 5x5_100, 6x6_250, ARUCO_ORIGINAL)
-DICT = cv2.aruco.DICT_4X4_250
+# --- Config ---
+DICT = cv2.aruco.DICT_4X4_250   # match your printed tags
+CAM_INDEX = 0                   # 0 is the default webcam
+TARGET_WIDTH = 1280
+TARGET_HEIGHT = 720
 
-# load image
-img = cv2.imread("input.jpg")
-if img is None:
-    raise SystemExit("Couldn't read input.jpg")
+EXPECTED_IDS = {1, 2, 3, 4}
 
-# get dictionary + default detector params
+# Optional: calibration
+USE_POSE = False
+K = None
+dist = None
+MARKER_SIZE_M = 0.03
+
+# --- Setup camera ---
+cap = cv2.VideoCapture(CAM_INDEX, cv2.CAP_AVFOUNDATION)
+if not cap.isOpened():
+    cap = cv2.VideoCapture(CAM_INDEX)
+    if not cap.isOpened():
+        raise SystemExit("Could not open webcam. Check permissions/camera index.")
+
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, TARGET_WIDTH)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, TARGET_HEIGHT)
+cap.set(cv2.CAP_PROP_FPS, 30)
+
+# --- ArUco dictionary & detector ---
 aruco_dict = cv2.aruco.getPredefinedDictionary(DICT)
-
-# OpenCV 4.7+ uses ArucoDetector; older 4.x used detectMarkers()
 use_new = hasattr(cv2.aruco, "ArucoDetector")
+
 if use_new:
     params = cv2.aruco.DetectorParameters()
     detector = cv2.aruco.ArucoDetector(aruco_dict, params)
-    corners, ids, rejected = detector.detectMarkers(img)
 else:
     params = cv2.aruco.DetectorParameters_create()
-    corners, ids, rejected = cv2.aruco.detectMarkers(img, aruco_dict, parameters=params)
 
-# draw detections
-out = img.copy()
-if ids is not None and len(ids) > 0:
-    cv2.aruco.drawDetectedMarkers(out, corners, ids)
+# --- Main loop ---
+prev = time.time()
+keyboard_launched = False  # prevent repeated launches
 
-    # OPTIONAL: pose estimation if you know camera intrinsics + marker size
-    # Fill these with your calibration results:
-    #   K: 3x3 camera matrix, dist: 1x5 (or 1x8) distortion coeffs
-    #   marker_size_m: marker side length in meters
-    # K = np.array([[fx, 0, cx],
-    #               [0, fy, cy],
-    #               [0,  0,  1]], dtype=np.float32)
-    # dist = np.array([k1, k2, p1, p2, k3], dtype=np.float32)
-    # marker_size_m = 0.03
-    # rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(corners, marker_size_m, K, dist)
-    # for rvec, tvec in zip(rvecs, tvecs):
-    #     cv2.drawFrameAxes(out, K, dist, rvec, tvec, marker_size_m * 0.5)
+while True:
+    ok, frame = cap.read()
+    if not ok:
+        print("Frame grab failed.")
+        break
 
-else:
-    print("No markers found.")
+    # Detect markers
+    if use_new:
+        corners, ids, rejected = detector.detectMarkers(frame)
+    else:
+        corners, ids, rejected = cv2.aruco.detectMarkers(frame, aruco_dict, parameters=params)
 
-cv2.imwrite("output_with_markers.jpg", out)
-print("Saved: output_with_markers.jpg")
+    out = frame.copy()
+    if ids is not None and len(ids) > 0:
+        cv2.aruco.drawDetectedMarkers(out, corners, ids)
+
+        # Overlay IDs
+        detected_ids = set(int(i) for i in ids.flatten())
+        for i, c in enumerate(corners):
+            c = c[0].astype(int)
+            cx, cy = c.mean(axis=0).astype(int)
+            cv2.putText(out, f"id:{int(ids[i])}", (cx, cy-10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2, cv2.LINE_AA)
+
+        # --- Check if ALL expected tags are present ---
+        if EXPECTED_IDS.issubset(detected_ids) and not keyboard_launched:
+            print("✅ All markers detected! Launching keyboard_detection.py...")
+            subprocess.Popen(["python3", "KeyboardDetection.py"]) 
+            keyboard_launched = True  # prevent relaunch
+    else:
+        cv2.putText(out, "No markers", (20, 40),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2, cv2.LINE_AA)
+
+    # FPS
+    now = time.time()
+    fps = 1.0 / (now - prev)
+    prev = now
+    cv2.putText(out, f"FPS: {fps:.1f}", (20, 80),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2, cv2.LINE_AA)
+
+    cv2.imshow("ArUco Live", out)
+    key = cv2.waitKey(1) & 0xFF
+    if key == ord('q'):
+        break
+    elif key == ord('s'):
+        fname = f"aruco_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
+        cv2.imwrite(fname, out)
+        print(f"Saved {fname}")
+
+cap.release()
+cv2.destroyAllWindows()
