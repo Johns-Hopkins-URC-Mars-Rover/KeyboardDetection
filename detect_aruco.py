@@ -4,7 +4,7 @@ import time
 from datetime import datetime
 import subprocess   # for running external script
 
-# --- Config ---
+# Config
 DICT = cv2.aruco.DICT_4X4_250   # match your printed tags
 CAM_INDEX = 0                   # 0 is the default webcam
 TARGET_WIDTH = 1280
@@ -12,11 +12,11 @@ TARGET_HEIGHT = 720
 EXPECTED_IDS = {1, 2, 3, 4}
 STABLE_DURATION = 10  # seconds all markers must be visible continuously
 
-# Optional: calibration
+# Calibration
 USE_POSE = False
 K = None
 dist = None
-MARKER_SIZE_M = 0.03
+MARKER_SIZE = 2 # in cm
 
 # --- Setup camera ---
 cap = cv2.VideoCapture(CAM_INDEX, cv2.CAP_AVFOUNDATION)
@@ -55,6 +55,9 @@ while True:
         corners, ids, rejected = detector.detectMarkers(frame)
     else:
         corners, ids, rejected = cv2.aruco.detectMarkers(frame, aruco_dict, parameters=params)
+    
+    rvec , tvec, _ = cv2.aruco.estimatePoseSingleMarkers(corners, MARKER_SIZE, mtx, dist)
+
 
     out = frame.copy()
     detected_ids = set()
@@ -62,6 +65,7 @@ while True:
     if ids is not None and len(ids) > 0:
         cv2.aruco.drawDetectedMarkers(out, corners, ids)
         detected_ids = set(int(i) for i in ids.flatten())
+
 
         # Overlay IDs
         for i, c in enumerate(corners):
@@ -71,6 +75,7 @@ while True:
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2, cv2.LINE_AA)
 
         # --- Check if ALL expected tags are present ---
+<<<<<<< Updated upstream
         if EXPECTED_IDS.issubset(detected_ids):
             if all_detected_start_time is None:
                 all_detected_start_time = time.time()  # start timing
@@ -81,6 +86,12 @@ while True:
         else:
             # Reset timer if markers are lost
             all_detected_start_time = None
+=======
+        if EXPECTED_IDS.issubset(detected_ids) and not keyboard_launched:
+            print("All markers detected! Launching keyboard_detection.py...")
+            subprocess.Popen(["python3", "KeyboardDetection.py"]) 
+            keyboard_launched = True  # prevent relaunch
+>>>>>>> Stashed changes
     else:
         cv2.putText(out, "No markers", (20, 40),
                     cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2, cv2.LINE_AA)
