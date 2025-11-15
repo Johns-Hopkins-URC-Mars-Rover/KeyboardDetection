@@ -134,7 +134,7 @@ calibration, cameraMatrix, distCoeffs, rvecs, tvecs = aruco.calibrateCameraCharu
 print("Camera intrinsic parameters matrix:\n{}".format(cameraMatrix))
 print("\nCamera distortion coefficients:\n{}".format(distCoeffs))
 		
-# Save the calibrationq
+# Save the calibration
 f = open('./CameraCalibration.pckl', 'wb')
 pickle.dump((cameraMatrix, distCoeffs, rvecs, tvecs), f)
 f.close()

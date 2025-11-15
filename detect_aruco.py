@@ -75,7 +75,6 @@ while True:
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2, cv2.LINE_AA)
 
         # --- Check if ALL expected tags are present ---
-<<<<<<< Updated upstream
         if EXPECTED_IDS.issubset(detected_ids):
             if all_detected_start_time is None:
                 all_detected_start_time = time.time()  # start timing
@@ -86,12 +85,10 @@ while True:
         else:
             # Reset timer if markers are lost
             all_detected_start_time = None
-=======
         if EXPECTED_IDS.issubset(detected_ids) and not keyboard_launched:
             print("All markers detected! Launching keyboard_detection.py...")
             subprocess.Popen(["python3", "KeyboardDetection.py"]) 
             keyboard_launched = True  # prevent relaunch
->>>>>>> Stashed changes
     else:
         cv2.putText(out, "No markers", (20, 40),
                     cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2, cv2.LINE_AA)
