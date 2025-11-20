@@ -6,7 +6,7 @@ import cv2
 
 class CameraPublisher(Node):
     def __init__(self):
-        super.__init__('camera_publisher')
+        super().__init__('camera_publisher')
         self.publisher = self.create_publisher(Image, 'camera/image', 10)
         self.bridge = CvBridge()
         self.cap = cv2.VideoCapture(0)
@@ -25,7 +25,12 @@ class CameraPublisher(Node):
             return None
         
         message = self.bridge.cv2_to_imgmsg(frame, encoding = 'bgr8')
-        self.publisher_.publish(message)
+
+        # timestamp and frame name
+        message.header.stamp = self.get_clock().now().to_msg()
+        message.header.frame_id = "camera_frame"
+
+        self.publisher.publish(message)
         self.get_logger().info("Published Image")
 
 def main():
