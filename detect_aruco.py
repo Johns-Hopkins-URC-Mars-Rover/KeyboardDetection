@@ -79,7 +79,7 @@ while True:
             if all_detected_start_time is None:
                 all_detected_start_time = time.time()  # start timing
             elif (time.time() - all_detected_start_time >= STABLE_DURATION) and not keyboard_launched:
-                print("✅ All markers stable for 10s! Launching KeyboardDetection.py...")
+                print(" All markers stable for 10s! Launching KeyboardDetection.py...")
                 subprocess.Popen(["python3", "KeyboardDetection.py"])
                 keyboard_launched = True
         else:
