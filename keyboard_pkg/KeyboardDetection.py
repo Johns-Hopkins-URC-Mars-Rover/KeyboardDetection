@@ -1,6 +1,10 @@
 import cv2
 from ultralytics import YOLO
 
+input = "qwerty"
+with open("outputfile.txt", "w") as file:
+    file.close()
+
 def correct_key_label(cls_name, x1, y1, x2, y2, frame, results):
     cx = (x1 + x2) // 2
     cy = (y1 + y2) // 2
@@ -33,8 +37,8 @@ def correct_key_label(cls_name, x1, y1, x2, y2, frame, results):
 
     return cls_name
 
-# adjust path
-model = YOLO(r'/Users/mariamhusain/Desktop/best.pt')
+
+model = YOLO(r'best.pt')
 cap = cv2.VideoCapture(0)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
@@ -53,6 +57,11 @@ while cap.isOpened():
             conf = box.conf[0]
             cls = int(box.cls[0])
             cls_name = cls_name = correct_key_label(model.names[cls], x1, y1, x2, y2, frame, results)
+
+            if (input and (cls_name in input)):
+                with open("outputfile.txt", "r+") as file:
+                    file.write(f"{cls_name} Located at: ({(x1 + x2) / 2}, {(y1 + y2) / 2})\n")
+                input = input.replace(cls_name, "")
 
             cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
             cv2.putText(frame,f'{cls_name}', (x1, y1 - 10),
